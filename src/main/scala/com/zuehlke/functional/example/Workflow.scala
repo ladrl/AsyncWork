@@ -1,18 +1,18 @@
 package com.zuehlke.functional.example
 
-import akka.actor._
-import akka.pattern.{
-  ask,
-  gracefulStop
-}
+import akka.pattern.ask
 import akka.util.duration._
 import akka.util.Timeout
+import akka.event.Logging
+import akka.actor.{ 
+  ActorSystem,
+  Props
+}
 import akka.dispatch.{
 	Promise,
 	Future,
 	Await
 }
-import akka.event.Logging
 import com.zuehlke.functional.example.functions.{
   Validator,
   Discounter,
@@ -25,55 +25,11 @@ import com.zuehlke.functional.example.model.{
   OrderOk,
   OrderError
 }
-import java.util.Date
-
-case class WriteReceipt(val receipt: OrderOk)
-case class WriteError(val error: String)
-
-class OrderReader(val writer: ActorRef, val workflow: IncomingOrder => Future[OrderRecipe]) extends Actor {
-  import scala.io.Source._
-
-  case object ReadOrder
-
-  val lines = stdin.getLines
-
-  implicit val system = context.system
-  implicit val disp = context.dispatcher
-
-  override def preStart = self ! ReadOrder
-  
-  def receive = {
-    case ReadOrder => {
-      print(">")
-      Promise.successful {
-        val nextLine = lines.next
-
-        if (nextLine == "q") {
-          gracefulStop(context.parent, 20 seconds)
-        }
-        else {
-          workflow(IncomingOrder(nextLine)).onComplete {
-            case Right(receipt: OrderOk) => writer ! WriteReceipt(receipt)
-            case Left(error) => writer ! WriteError(error.getLocalizedMessage)
-          }
-          self ! ReadOrder
-        }
-      }
-    }
-  }
+import com.zuehlke.functional.example.ui.Console.{
+  OrderWriter,
+  OrderReader
 }
 
-class OrderWriter extends Actor {
-  override def receive = {
-    case WriteReceipt(receipt) => {
-      println("<< Order %s executed on %s" format (receipt.order, receipt.completed_on))
-    }
-
-    case WriteError(error) => {
-      println("<< Error while processing: %s" format error)
-    }
-  }
-}
 
 object Workflow extends App {
 
