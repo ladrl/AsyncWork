@@ -1,18 +1,16 @@
 package com.zuehlke.functional.example.functions
 
-import akka.actor.Actor
-import akka.util.duration._
-import com.zuehlke.functional.example.model.{
-  IncomingOrder,
-  ValidOrder,
+import com.zuehlke.functional.example.model.{ 
   Address,
-  Item
+  IncomingOrder,
+  Item,
+  ValidOrder
 }
-import akka.event.Logging
-import com.zuehlke.functional.example.model.ValidOrder
-import akka.actor.ActorRef
-import akka.actor.Failed
+
+import akka.actor.{ Actor, ActorRef }
 import akka.actor.Status.Failure
+import akka.event.Logging
+import akka.util.duration._
 
 class Validator extends Actor {
   case class Done(val order: ValidOrder, val sender: ActorRef)
@@ -41,6 +39,9 @@ class Validator extends Actor {
       }
     }
 
-    case Done(order, receipient) => receipient ! order
+    case Done(order, receipient) => {
+      log.info("Order valid: {}", order)
+      receipient ! order
+    }
   }
 }

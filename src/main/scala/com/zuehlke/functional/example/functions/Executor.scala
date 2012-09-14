@@ -1,7 +1,6 @@
 package com.zuehlke.functional.example.functions
 
-import akka.actor.ActorRef
-import akka.actor.Actor
+import akka.actor.{ ActorRef, Actor }
 import akka.event.Logging
 import akka.util.duration._
 import com.zuehlke.functional.example.model.{

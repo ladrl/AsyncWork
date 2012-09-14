@@ -7,6 +7,12 @@ import akka.pattern.{
 }
 import akka.util.duration._
 import akka.util.Timeout
+import akka.dispatch.{
+	Promise,
+	Future,
+	Await
+}
+import akka.event.Logging
 import com.zuehlke.functional.example.functions.{
   Validator,
   Discounter,
@@ -19,12 +25,7 @@ import com.zuehlke.functional.example.model.{
   OrderOk,
   OrderError
 }
-import akka.dispatch.Promise
-import akka.dispatch.Future
-import akka.event.Logging
-import akka.dispatch.Await
 import java.util.Date
-import com.zuehlke.functional.example.model.IncomingOrder
 
 case class WriteReceipt(val receipt: OrderOk)
 case class WriteError(val error: String)
@@ -47,16 +48,16 @@ class OrderReader(val writer: ActorRef, val workflow: IncomingOrder => Future[Or
       Promise.successful {
         val nextLine = lines.next
 
-        if (nextLine == "q")
+        if (nextLine == "q") {
           gracefulStop(context.parent, 20 seconds)
+        }
         else {
           workflow(IncomingOrder(nextLine)).onComplete {
             case Right(receipt: OrderOk) => writer ! WriteReceipt(receipt)
             case Left(error) => writer ! WriteError(error.getLocalizedMessage)
           }
+          self ! ReadOrder
         }
-      } map { _ =>
-        self ! ReadOrder
       }
     }
   }
